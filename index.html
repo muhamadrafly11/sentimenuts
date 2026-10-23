@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentimen IHSG Jumat - Apify YouTube Analytics</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        /* Custom scrollbar for clean aesthetic */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400">
+                    <i data-lucide="trending-down" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+                        Sentimen Market IHSG Jumat
+                        <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">YouTube Dataset</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Integrasi Apify Dataset & Sentiment Analysis</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button onclick="window.fetchApifyDataset()" class="flex items-center gap-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg transition-all shadow-lg shadow-emerald-600/20 active:scale-95">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span>Sync Dataset Apify</span>
+                </button>
+                <button onclick="window.openApifyModal()" class="flex items-center gap-2 text-xs font-medium bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-2 rounded-lg transition-all shadow-lg shadow-brand-600/20 active:scale-95">
+                    <i data-lucide="key-round" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Konfigurasi API</span>
+                </button>
+                <button onclick="window.resetData()" title="Reset ke Sampel Awal" class="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Notification Banner -->
+        <div id="infoBanner" class="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+            <div class="flex items-start gap-3">
+                <div id="statusIconBg" class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg shrink-0 mt-0.5 sm:mt-0">
+                    <i data-lucide="database" class="w-5 h-5"></i>
+                </div>
+                <div class="text-sm">
+                    <p id="bannerTitle" class="font-semibold text-slate-200">Menghubungkan ke Apify Dataset...</p>
+                    <p id="bannerSub" class="text-slate-400 text-xs mt-0.5">
+                        Dataset Endpoint: <code class="text-brand-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">CYQJdU0IUvYbZeT53</code> | Target YouTube Video ID: <code class="text-red-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">VpfmlrYfi3k</code>
+                    </p>
+                </div>
+            </div>
+            <a id="targetVideoBtn" href="https://www.youtube.com/watch?v=VpfmlrYfi3k" target="_blank" class="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shrink-0 font-medium transition">
+                <i data-lucide="youtube" class="w-4 h-4"></i>
+                <span>Tonton Video YouTube</span>
+            </a>
+        </div>
+
+        <!-- Metric Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Data -->
+            <div class="p-4 bg-slate-900 border border-slate-800/80 rounded-2xl shadow-sm hover:border-slate-700 transition">
+                <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                    <span>Total Komentar</span>
+                    <i data-lucide="message-square" class="w-4 h-4 text-brand-400"></i>
+                </div>
+                <div class="mt-2 flex items-baseline justify-between">
+                    <span id="statTotal" class="text-2xl font-bold text-white">0</span>
+                    <span class="text-xs text-slate-400">YouTube Data</span>
+                </div>
+            </div>
+
+            <!-- Sentimen Negatif -->
+            <div class="p-4 bg-slate-900 border border-slate-800/80 rounded-2xl shadow-sm hover:border-slate-700 transition">
+                <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                    <span>Sentimen Negatif (Khawatir)</span>
+                    <i data-lucide="frown" class="w-4 h-4 text-rose-400"></i>
+                </div>
+                <div class="mt-2 flex items-baseline justify-between">
+                    <span id="statNegatif" class="text-2xl font-bold text-rose-400">0</span>
+                    <span id="statNegatifPct" class="text-xs text-rose-400 font-medium">0%</span>
+                </div>
+            </div>
+
+            <!-- Sentimen Netral -->
+            <div class="p-4 bg-slate-900 border border-slate-800/80 rounded-2xl shadow-sm hover:border-slate-700 transition">
+                <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                    <span>Sentimen Netral (Analisis)</span>
+                    <i data-lucide="meh" class="w-4 h-4 text-amber-400"></i>
+                </div>
+                <div class="mt-2 flex items-baseline justify-between">
+                    <span id="statNetral" class="text-2xl font-bold text-amber-400">0</span>
+                    <span id="statNetralPct" class="text-xs text-amber-400 font-medium">0%</span>
+                </div>
+            </div>
+
+            <!-- Sentimen Positif -->
+            <div class="p-4 bg-slate-900 border border-slate-800/80 rounded-2xl shadow-sm hover:border-slate-700 transition">
+                <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                    <span>Sentimen Positif (Peluang)</span>
+                    <i data-lucide="smile" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="mt-2 flex items-baseline justify-between">
+                    <span id="statPositif" class="text-2xl font-bold text-emerald-400">0</span>
+                    <span id="statPositifPct" class="text-xs text-emerald-400 font-medium">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Doughnut Chart -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="font-semibold text-sm text-slate-200">Rasio Sentimen Masyarakat</h2>
+                    <span class="text-xs text-slate-500">IHSG Jumat</span>
+                </div>
+                <div class="relative w-full h-52 flex items-center justify-center">
+                    <canvas id="sentimentDoughnutChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Bar Chart Emosi/Topik -->
+            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="font-semibold text-sm text-slate-200">Indikator Psikologi Pasar Saham</h2>
+                    <span class="text-xs text-slate-500">Frekuensi Kategori Spesifik</span>
+                </div>
+                <div class="relative w-full h-52">
+                    <canvas id="emotionBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <!-- Search input -->
+            <div class="relative flex-1">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="searchInput" oninput="window.applyFilters()" placeholder="Cari nama akun atau isi komentar..." class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+            </div>
+
+            <!-- Filter By Sentiment -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400 font-medium">Filter:</span>
+                    <select id="sentimentFilter" onchange="window.applyFilters()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-brand-500 transition">
+                        <option value="ALL">Semua Sentimen</option>
+                        <option value="Negatif">Negatif</option>
+                        <option value="Netral">Netral</option>
+                        <option value="Positif">Positif</option>
+                    </select>
+                </div>
+
+                <!-- Export Options -->
+                <div class="flex items-center gap-2 border-l border-slate-800 pl-3">
+                    <button onclick="window.exportCSV()" class="p-2 text-slate-400 hover:text-white bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs flex items-center gap-1.5 transition" title="Ekspor ke CSV">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">CSV</span>
+                    </button>
+                    <button onclick="window.exportJSON()" class="p-2 text-slate-400 hover:text-white bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs flex items-center gap-1.5 transition" title="Ekspor ke JSON">
+                        <i data-lucide="file-code" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">JSON</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Container -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                            <th class="py-3.5 px-4">No</th>
+                            <th class="py-3.5 px-4">Nama Akun</th>
+                            <th class="py-3.5 px-4">Isi Komentar YouTube</th>
+                            <th class="py-3.5 px-4 text-center">Sentimen</th>
+                            <th class="py-3.5 px-4 text-center">Link Sumber</th>
+                            <th class="py-3.5 px-4 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-800/60 text-slate-300">
+                        <!-- Dynamic Rows loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden py-12 text-center text-slate-500 space-y-2">
+                <i data-lucide="inbox" class="w-8 h-8 mx-auto stroke-1"></i>
+                <p class="text-sm">Tidak ada komentar yang cocok dengan pencarian/filter.</p>
+            </div>
+
+            <!-- Table Footer Status -->
+            <div class="px-4 py-3 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <span id="showingCountText">Menampilkan 0 Data</span>
+                <span id="apiGatewayStatus" class="text-slate-500">API Gateway: Apify Dataset (CYQJdU0IUvYbZeT53)</span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal: Apify API Setup -->
+    <div id="apifyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
+            <button onclick="window.closeApifyModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-brand-500/10 border border-brand-500/30 rounded-xl text-brand-400">
+                    <i data-lucide="database" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-100">Konfigurasi Apify Dataset & Endpoint</h3>
+                    <p class="text-xs text-slate-400">Pengaturan dataset ID dan token akses Apify</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Apify Dataset ID / Full URL</label>
+                    <input type="text" id="apifyDatasetIdInput" value="CYQJdU0IUvYbZeT53" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Apify API Token</label>
+                    <input type="password" id="apifyTokenInput" value="apify_api_E6fF7n1mCJAYAF5LbQjxqIQB3dySrx2VWnDb" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Target Video YouTube</label>
+                    <input type="text" id="youtubeUrlInput" value="https://www.youtube.com/watch?v=VpfmlrYfi3k" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-brand-500 font-mono">
+                </div>
+
+                <div id="apiStatusMessage" class="hidden p-3 rounded-xl border text-xs"></div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button onclick="window.closeApifyModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+                    Tutup
+                </button>
+                <button onclick="window.fetchApifyDataset()" id="btnFetchApify" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium flex items-center gap-2 shadow-lg shadow-brand-600/20 transition">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Tarik Data Terbaru</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Comment Detail -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
+            <button onclick="window.closeDetailModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div id="detailAvatar" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-bold text-brand-400">
+                    A
+                </div>
+                <div>
+                    <h3 id="detailAccountName" class="font-bold text-sm text-slate-100">@NamaAkun</h3>
+                    <p id="detailTimestamp" class="text-[11px] text-slate-400">Waktu posting</p>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <div class="p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 leading-relaxed italic" id="detailCommentText">
+                    "Isi komentar masyarakat..."
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs">
+                    <span class="text-slate-400">Klasifikasi Sentimen:</span>
+                    <span id="detailSentimentBadge" class="px-2.5 py-1 rounded-md text-[11px] font-semibold">Negatif</span>
+                </div>
+
+                <div class="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs space-y-1">
+                    <p class="font-semibold text-slate-300">Analisis NLP AI:</p>
+                    <p id="detailAIReason" class="text-slate-400 text-[11px] leading-relaxed">
+                        Komentar ini mengindikasikan tanggapan terkait pergerakan IHSG.
+                    </p>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-between items-center">
+                <a id="detailLinkBtn" href="https://www.youtube.com/watch?v=VpfmlrYfi3k" target="_blank" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 font-medium">
+                    <i data-lucide="youtube" class="w-4 h-4"></i>
+                    <span>Buka Video YouTube</span>
+                </a>
+                <button onclick="window.closeDetailModal()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Config & Constants
+        const DEFAULT_API_TOKEN = "apify_api_E6fF7n1mCJAYAF5LbQjxqIQB3dySrx2VWnDb";
+        const DEFAULT_DATASET_ID = "CYQJdU0IUvYbZeT53";
+        const TARGET_YOUTUBE_URL = "https://www.youtube.com/watch?v=VpfmlrYfi3k";
+
+        // Initial 8 Default Sample Data (Fallback)
+        const SAMPLE_DATA = [
+            {
+                id: 1,
+                accountName: "@TraderSantai_ID",
+                comment: "IHSG anjlok 2.3% di penutupan Jumat gara-gara aksi profit taking asing dan sentimen suku bunga. Waktunya serok bawah atau wait and see minggu depan?",
+                sentiment: "Negatif",
+                sourceUrl: TARGET_YOUTUBE_URL,
+                timestamp: "Jumat, 16:30 WIB",
+                emotionCategory: "Kepanikan/Khawatir",
+                aiReason: "Mengutarakan kekhawatiran penurunan IHSG akibat outflow modal asing di hari Jumat."
+            },
+            {
+                id: 2,
+                accountName: "@InvestasiMuda99",
+                comment: "Portofolio merah membara akhir pekan ini. IHSG turun drastis Jumat sore bikin senewen, mana belum sempat pasang trailing stop lagi.",
+                sentiment: "Negatif",
+                sourceUrl: TARGET_YOUTUBE_URL,
+                timestamp: "Jumat, 17:05 WIB",
+                emotionCategory: "Kepanikan/Khawatir",
+                aiReason: "Pengalaman kerugian portofolio pribadi karena penurunan indeks menjelang libur akhir pekan."
+            },
+            {
+                id: 3,
+                accountName: "@BursaSahamWeekly",
+                comment: "Analisis teknikal IHSG Jumat ini menembus support kuat 7.200. Hati-hati jebakan rebound, arus modal keluar asing cukup deras.",
+                sentiment: "Negatif",
+                sourceUrl: TARGET_YOUTUBE_URL,
+                timestamp: "Jumat, 17:45 WIB",
+                emotionCategory: "Skeptis/Peringatan",
+                aiReason: "Peringatan teknikal terhadap risiko penurunan lanjutan indeks bursa."
+            },
+            {
+                id: 4,
+                accountName: "@CuanMaximalist",
+                comment: "Jumat berkah buat yang siap dana cash! IHSG diskon gede-gedean hari ini, saham-saham perbankan big cap udah menarik banget nilainya.",
+                sentiment: "Positif",
+                sourceUrl: TARGET_YOUTUBE_URL,
+                timestamp: "Jumat, 18:10 WIB",
+                emotionCategory: "Opportunis (Buy Low)",
+                aiReason: "Memandang penurunan harga saham di hari Jumat sebagai kesempatan membeli saham fundamental bagus."
+            },
+            {
+                id: 5,
+                accountName: "@Rudi_ValueInvestor",
+                comment: "Penurunan IHSG hari Jumat ini wajar setelah rally berturut-turut. Fundamental emiten inti tetap solid, jangan panic selling.",
+                sentiment: "Netral",
+                sourceUrl: TARGET_YOUTUBE_URL,
+                timestamp: "Jumat, 18:50 WIB",
+                emotionCategory: "Analitis/Objektif",
+                aiReason: "Pandangan objektif menganggap penurunan bursa sebagai koreksi sehat dan wajar."
+            },
+            {
+                id: 6,
+                accountName: "@Siti_CuanMania",
+                comment: "Aduh runtuh IHSG di Jumat sore, habislah margin call kalau Senin tidak ada intervensi sentimen positif global.",
+                sentiment: "Negatif",
+                sourceUrl: TARGET_YOUTUBE_URL,
+                timestamp: "Jumat, 19:15 WIB",
+                emotionCategory: "Kepanikan/Khawatir",
+                aiReason: "Ketakutan akan risiko margin call dari pergerakan merah IHSG."
+            },
+            {
+                id: 7,
+                accountName: "@Dharma_Capital",
+                comment: "Statistik historis mencatat pelemahan IHSG di hari Jumat sering kali direspons pemulihan di Selasa berikutnya. Disiplin money management kunci utama.",
+                sentiment: "Netral",
+                sourceUrl: TARGET_YOUTUBE_URL,
+                timestamp: "Jumat, 20:00 WIB",
+                emotionCategory: "Analitis/Objektif",
+                aiReason: "Menjelaskan pola statistik historis perdagangan saham harian."
+            },
+            {
+                id: 8,
+                accountName: "@FinansialKita",
+                comment: "Saham bluechip kena pangkas signifikan di perdagangan sesi II Jumat ini. Peluang emas serok cicil bertahap untuk horizon investasi jangka panjang!",
+                sentiment: "Positif",
+                sourceUrl: TARGET_YOUTUBE_URL,
+                timestamp: "Jumat, 20:40 WIB",
+                emotionCategory: "Opportunis (Buy Low)",
+                aiReason: "Optimisme investasi jangka panjang memanfaatkan momen koreksi IHSG."
+            }
+        ];
+
+        // Global Application State
+        let dataset = [...SAMPLE_DATA];
+        let filteredDataset = [...SAMPLE_DATA];
+        let doughnutChartInstance = null;
+        let barChartInstance = null;
+
+        // Standard Utility for Safe HTML Escaping
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Rule-Based Sentiment Classifier for Indonesian IHSG Comments
+        function classifySentiment(text) {
+            const lower = (text || "").toLowerCase();
+            
+            const negKeywords = ['anjlok', 'turun', 'merah', 'rugi', 'runtuh', 'margin call', 'panik', 'drop', 'jebol', 'ancur', 'buntung', 'parah', 'gagal', 'beban'];
+            const posKeywords = ['serok', 'diskon', 'peluang', 'murah', 'buy', 'cuan', 'bagus', 'naik', 'terbang', ' rebound', 'potensi', 'saham bagus', 'mantap'];
+            
+            let negScore = 0;
+            let posScore = 0;
+
+            negKeywords.forEach(k => { if (lower.includes(k)) negScore++; });
+            posKeywords.forEach(k => { if (lower.includes(k)) posScore++; });
+
+            if (negScore > posScore) {
+                return { sentiment: 'Negatif', category: 'Kepanikan/Khawatir' };
+            } else if (posScore > negScore) {
+                return { sentiment: 'Positif', category: 'Opportunis (Buy Low)' };
+            }
+            return { sentiment: 'Netral', category: 'Analitis/Objektif' };
+        }
+
+        // Global Render Functions Attached to Window
+        window.renderAll = function() {
+            window.renderTable();
+            window.updateMetrics();
+            window.renderCharts();
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                try { window.lucide.createIcons(); } catch (e) { console.warn(e); }
+            }
+        };
+
+        window.renderTable = function() {
+            const tableBody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            const showingCountText = document.getElementById('showingCountText');
+
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            if (!filteredDataset || filteredDataset.length === 0) {
+                if (emptyState) emptyState.classList.remove('hidden');
+            } else {
+                if (emptyState) emptyState.classList.add('hidden');
+                filteredDataset.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-850 transition border-b border-slate-800/50";
+
+                    let badgeClass = "bg-slate-800 text-slate-300 border-slate-700";
+                    if (item.sentiment === "Negatif") badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/30";
+                    if (item.sentiment === "Positif") badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+                    if (item.sentiment === "Netral") badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/30";
+
+                    const accountChar = (item.accountName && item.accountName.length > 1) ? item.accountName.charAt(1).toUpperCase() : 'Y';
+
+                    row.innerHTML = `
+                        <td class="py-3.5 px-4 font-mono text-slate-500">${index + 1}</td>
+                        <td class="py-3.5 px-4 font-semibold text-slate-200">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] text-brand-400 font-bold shrink-0">
+                                    ${accountChar}
+                                </div>
+                                <span class="truncate max-w-[120px]" title="${escapeHtml(item.accountName)}">${escapeHtml(item.accountName)}</span>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-300">
+                            <p class="line-clamp-2 text-xs max-w-md">${escapeHtml(item.comment)}</p>
+                            <span class="text-[10px] text-slate-500">${escapeHtml(item.timestamp)}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold border ${badgeClass}">
+                                ${escapeHtml(item.sentiment)}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <a href="${escapeHtml(item.sourceUrl)}" target="_blank" class="inline-flex items-center gap-1 text-slate-400 hover:text-red-400 transition bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800" title="Buka di YouTube">
+                                <i data-lucide="youtube" class="w-3.5 h-3.5 text-red-500"></i>
+                                <span class="text-[11px]">YouTube</span>
+                            </a>
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <button onclick="window.openDetailModal(${item.id})" class="text-brand-400 hover:text-brand-300 bg-brand-500/10 hover:bg-brand-500/20 px-2.5 py-1 rounded-lg border border-brand-500/20 text-[11px] transition">
+                                Detail
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            if (showingCountText) {
+                showingCountText.textContent = `Menampilkan ${filteredDataset.length} dari ${dataset.length} Data`;
+            }
+        };
+
+        window.updateMetrics = function() {
+            const total = dataset.length;
+            const negatif = dataset.filter(d => d.sentiment === 'Negatif').length;
+            const netral = dataset.filter(d => d.sentiment === 'Netral').length;
+            const positif = dataset.filter(d => d.sentiment === 'Positif').length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statNegatif').textContent = negatif;
+            document.getElementById('statNetral').textContent = netral;
+            document.getElementById('statPositif').textContent = positif;
+
+            document.getElementById('statNegatifPct').textContent = total ? `${Math.round((negatif / total) * 100)}%` : '0%';
+            document.getElementById('statNetralPct').textContent = total ? `${Math.round((netral / total) * 100)}%` : '0%';
+            document.getElementById('statPositifPct').textContent = total ? `${Math.round((positif / total) * 100)}%` : '0%';
+        };
+
+        window.renderCharts = function() {
+            if (typeof Chart === 'undefined') return;
+
+            const negatif = dataset.filter(d => d.sentiment === 'Negatif').length;
+            const netral = dataset.filter(d => d.sentiment === 'Netral').length;
+            const positif = dataset.filter(d => d.sentiment === 'Positif').length;
+
+            // Doughnut Chart
+            const canvasDoughnut = document.getElementById('sentimentDoughnutChart');
+            if (canvasDoughnut) {
+                const ctxDoughnut = canvasDoughnut.getContext('2d');
+                if (doughnutChartInstance) doughnutChartInstance.destroy();
+
+                doughnutChartInstance = new Chart(ctxDoughnut, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Negatif (Kecemasan)', 'Netral (Analisis)', 'Positif (Peluang)'],
+                        datasets: [{
+                            data: [negatif, netral, positif],
+                            backgroundColor: ['#f43f5e', '#f59e0b', '#10b981'],
+                            borderColor: '#0f172a',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#94a3b8',
+                                    font: { size: 11, family: 'Inter' },
+                                    boxWidth: 12,
+                                    padding: 15
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+
+            // Emotion Category Count
+            const categories = {};
+            dataset.forEach(d => {
+                const cat = d.emotionCategory || 'Lainnya';
+                categories[cat] = (categories[cat] || 0) + 1;
+            });
+
+            const barLabels = Object.keys(categories);
+            const barData = Object.values(categories);
+
+            // Bar Chart
+            const canvasBar = document.getElementById('emotionBarChart');
+            if (canvasBar) {
+                const ctxBar = canvasBar.getContext('2d');
+                if (barChartInstance) barChartInstance.destroy();
+
+                barChartInstance = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: barLabels,
+                        datasets: [{
+                            label: 'Jumlah Komentar',
+                            data: barData,
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                ticks: { color: '#94a3b8', font: { size: 10 } },
+                                grid: { display: false }
+                            },
+                            y: {
+                                ticks: { color: '#94a3b8', precision: 0 },
+                                grid: { color: '#1e293b' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+        };
+
+        window.applyFilters = function() {
+            const searchInput = document.getElementById('searchInput');
+            const sentimentFilter = document.getElementById('sentimentFilter');
+            
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const sentimentVal = sentimentFilter ? sentimentFilter.value : 'ALL';
+
+            filteredDataset = dataset.filter(item => {
+                const matchQuery = item.accountName.toLowerCase().includes(query) || item.comment.toLowerCase().includes(query);
+                const matchSentiment = sentimentVal === 'ALL' || item.sentiment === sentimentVal;
+                return matchQuery && matchSentiment;
+            });
+
+            window.renderTable();
+        };
+
+        // Fetch Data from Apify Dataset API
+        window.fetchApifyDataset = async function() {
+            const tokenInput = document.getElementById('apifyTokenInput');
+            const datasetInput = document.getElementById('apifyDatasetIdInput');
+            const ytInput = document.getElementById('youtubeUrlInput');
+            
+            const token = tokenInput ? tokenInput.value.trim() : DEFAULT_API_TOKEN;
+            const datasetId = datasetInput ? datasetInput.value.trim() : DEFAULT_DATASET_ID;
+            const ytUrl = ytInput ? ytInput.value.trim() : TARGET_YOUTUBE_URL;
+
+            const bannerTitle = document.getElementById('bannerTitle');
+            const bannerSub = document.getElementById('bannerSub');
+            const msgBox = document.getElementById('apiStatusMessage');
+
+            if (bannerTitle) bannerTitle.textContent = "Mengambil data komentar dari Apify Dataset API...";
+
+            try {
+                // Construct Endpoint URL
+                let apiUrl = "";
+                if (datasetId.startsWith("http")) {
+                    apiUrl = datasetId.includes('token=') ? datasetId : `${datasetId}?token=${token}`;
+                } else {
+                    apiUrl = `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}`;
+                }
+
+                const response = await fetch(apiUrl);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const items = await response.json();
+
+                if (Array.isArray(items) && items.length > 0) {
+                    // Map scraped items from Apify format to dashboard format
+                    dataset = items.map((item, idx) => {
+                        const commentText = item.text || item.commentText || item.textDisplay || item.comment || (item.snippet && item.snippet.topLevelComment && item.snippet.topLevelComment.snippet ? item.snippet.topLevelComment.snippet.textDisplay : "") || "Komentar YouTube seputar IHSG Jumat";
+                        const author = item.authorName || item.authorDisplayName || item.author || item.channelTitle || `@User_${idx + 1}`;
+                        const time = item.publishedAt || item.date || item.publishedTime || "Terbaru";
+                        const classification = classifySentiment(commentText);
+
+                        return {
+                            id: Date.now() + idx,
+                            accountName: author,
+                            comment: commentText,
+                            sentiment: classification.sentiment,
+                            sourceUrl: item.url || item.commentUrl || ytUrl,
+                            timestamp: time,
+                            emotionCategory: classification.category,
+                            aiReason: `Teraplikasi analisis sentimen dari payload Apify Dataset: ${classification.sentiment}.`
+                        };
+                    });
+
+                    filteredDataset = [...dataset];
+                    window.renderAll();
+
+                    if (bannerTitle) bannerTitle.textContent = `Berhasil terhubung ke Apify Dataset (${dataset.length} Komentar Terbaca)`;
+                    if (bannerSub) bannerSub.innerHTML = `Dataset ID: <code class="text-emerald-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">${escapeHtml(datasetId)}</code> | Terkoneksi & Sinkron.`;
+
+                    if (msgBox) {
+                        msgBox.className = "p-3 rounded-xl border text-xs bg-emerald-500/10 border-emerald-500/30 text-emerald-400 block";
+                        msgBox.textContent = `Sukses menarik ${dataset.length} data dari dataset Apify!`;
+                    }
+                } else {
+                    throw new Error("Dataset kosong atau format tidak sesuai.");
+                }
+
+            } catch (err) {
+                console.warn("Koneksi langsung ke Apify Dataset memerlukan akses CORS atau API Key valid.", err);
+                
+                if (bannerTitle) bannerTitle.textContent = "Mode Sampel Terdaftar (8 Komentar IHSG Jumat)";
+                if (bannerSub) bannerSub.innerHTML = `Integrasi Apify Siap | Menampilkan data sampel pasar IHSG Jumat penutupan.`;
+
+                if (msgBox) {
+                    msgBox.className = "p-3 rounded-xl border text-xs bg-amber-500/10 border-amber-500/30 text-amber-400 block";
+                    msgBox.textContent = `Peringatan: ${err.message}. Menampilkan 8 data sampel default.`;
+                }
+
+                dataset = [...SAMPLE_DATA];
+                filteredDataset = [...SAMPLE_DATA];
+                window.renderAll();
+            }
+        };
+
+        // Modal Controls
+        window.openApifyModal = function() {
+            const modal = document.getElementById('apifyModal');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeApifyModal = function() {
+            const modal = document.getElementById('apifyModal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.openDetailModal = function(id) {
+            const item = dataset.find(d => d.id === id);
+            if (!item) return;
+
+            const accountNameEl = document.getElementById('detailAccountName');
+            const avatarEl = document.getElementById('detailAvatar');
+            const timestampEl = document.getElementById('detailTimestamp');
+            const commentTextEl = document.getElementById('detailCommentText');
+            const aiReasonEl = document.getElementById('detailAIReason');
+            const linkBtnEl = document.getElementById('detailLinkBtn');
+            const badgeEl = document.getElementById('detailSentimentBadge');
+
+            if (accountNameEl) accountNameEl.textContent = item.accountName;
+            if (avatarEl) avatarEl.textContent = (item.accountName && item.accountName.length > 1) ? item.accountName.charAt(1).toUpperCase() : 'Y';
+            if (timestampEl) timestampEl.textContent = item.timestamp;
+            if (commentTextEl) commentTextEl.textContent = `"${item.comment}"`;
+            if (aiReasonEl) aiReasonEl.textContent = item.aiReason || "Komentar dianalisis menggunakan pemrosesan bahasa alami (NLP) seputar IHSG Jumat.";
+            if (linkBtnEl) linkBtnEl.href = item.sourceUrl;
+
+            if (badgeEl) {
+                badgeEl.textContent = item.sentiment;
+                badgeEl.className = "px-2.5 py-1 rounded-md text-[11px] font-semibold ";
+                if (item.sentiment === "Negatif") badgeEl.className += "bg-rose-500/10 text-rose-400 border border-rose-500/30";
+                else if (item.sentiment === "Positif") badgeEl.className += "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+                else badgeEl.className += "bg-amber-500/10 text-amber-400 border border-amber-500/30";
+            }
+
+            const modal = document.getElementById('detailModal');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeDetailModal = function() {
+            const modal = document.getElementById('detailModal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.resetData = function() {
+            dataset = [...SAMPLE_DATA];
+            filteredDataset = [...SAMPLE_DATA];
+            const searchInput = document.getElementById('searchInput');
+            const sentimentFilter = document.getElementById('sentimentFilter');
+            if (searchInput) searchInput.value = '';
+            if (sentimentFilter) sentimentFilter.value = 'ALL';
+            window.renderAll();
+        };
+
+        // Export Utilities
+        window.exportCSV = function() {
+            let csvContent = "data:text/csv;charset=utf-8,ID,Nama Akun,Isi Komentar,Sentimen,Link Sumber,Waktu\n";
+            dataset.forEach(d => {
+                const cleanComment = `"${(d.comment || '').replace(/"/g, '""')}"`;
+                csvContent += `${d.id},${d.accountName},${cleanComment},${d.sentiment},${d.sourceUrl},${d.timestamp}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `sentimen_ihsg_jumat_apify_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.exportJSON = function() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataset, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `sentimen_ihsg_jumat_apify_${Date.now()}.json`);
+            dlAnchor.click();
+            dlAnchor.remove();
+        };
+
+        // Safe App Initialization Engine
+        function initApp() {
+            window.renderAll();
+            window.fetchApifyDataset();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    </script>
+</body>
+</html>
